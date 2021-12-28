@@ -2,6 +2,8 @@
 using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using PCf_Explorer_Sol.Manager;
 using PCf_Explorer_Sol.Models;
 using System;
@@ -11,6 +13,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
@@ -22,6 +25,8 @@ namespace PCf_Explorer_Sol
 	{
 		private Settings mySettings;
 		Dictionary<int, string> dic = new Dictionary<int, string>();
+		Dictionary<string, string> dicControls = new Dictionary<string, string>();
+
 		public MyPluginControl()
 		{
 			InitializeComponent();
@@ -35,7 +40,8 @@ namespace PCf_Explorer_Sol
 			if (!SettingsManager.Instance.TryLoad(GetType(), out mySettings))
 			{
 				mySettings = new Settings();
-
+				listViewPCF.SetDoubleBuffered(true);
+				listViewDetails.SetDoubleBuffered(true);
 				LogWarning("Settings not found => a new settings file has been created!");
 			}
 			else
@@ -215,39 +221,62 @@ namespace PCf_Explorer_Sol
 
 		private void LoadflowList(List<PCFModel> pcfControls)
 		{
+
 			listViewPCF.Items.Clear();
 			listViewPCF.MultiSelect = false;
 			ListViewItem item = null;
+			ListViewItem.ListViewSubItem subitem;
+			ListViewItem.ListViewSubItem subsubitem;
+
 
 			var groupTrg = new ListViewGroup($"PCF Controls: {pcfControls.Count}");
+			lbltotal.Text = $"Total PCF Controls: {pcfControls.Count}";
 			listViewPCF.Groups.Add(groupTrg);
 			// Initialize the tile size.
-			listViewPCF.TileSize = new Size(560, 43);
+			listViewPCF.TileSize = new Size(560, 62);
 			ImageList myImageList = new ImageList();
 			myImageList.ColorDepth = ColorDepth.Depth32Bit;
 			myImageList.Images.Add(
-			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/PCf_transparent.png"));
-			myImageList.ImageSize = new Size(47, 47);
+			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/pcf80.png"));
+			myImageList.ImageSize = new Size(55, 55);
 			listViewPCF.LargeImageList = myImageList;
 			listViewPCF.View = View.Tile;
 
 			listViewPCF.Columns.AddRange(new ColumnHeader[]
 			  {new ColumnHeader(), new ColumnHeader(), new ColumnHeader()});
 
+			dicControls = new Dictionary<string, string>();
 			foreach (var pcf in pcfControls)
 			{
-				item = new ListViewItem(new string[] { pcf.name, pcf.compatibledatatypes, pcf.createdon.ToString("MM/dd/yyyy H:mm") }, 0, groupTrg);
+				item = new ListViewItem(new string[] { pcf.ClientJson.DisplayName }, 0, groupTrg);
+				item.Font = new System.Drawing.Font("Segoe UI", 11, System.Drawing.FontStyle.Regular);
+				item.UseItemStyleForSubItems = false;
+				subitem = new ListViewItem.ListViewSubItem();
+				subitem.Text = pcf.name;
+				subitem.Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Regular);
+				subitem.ForeColor = Color.Black;
+				item.SubItems.Add(subitem);
+
+				subsubitem = new ListViewItem.ListViewSubItem();
+				subsubitem = new ListViewItem.ListViewSubItem();
+				subsubitem.Text = pcf.compatibledatatypes;
+				subsubitem.Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Bold);
+				subsubitem.ForeColor = Color.FromArgb(54, 69, 79);
+				item.SubItems.Add(subsubitem);
+
 				item.Tag = pcf.ClientJson;//as cache
+
 				listViewPCF.Items.Add(item);
+				dicControls.Add(pcf.ClientJson.CustomControlId, pcf.clientjsonraw);
 
 			}
-			RenderPieChart(pcfControls);
-			RenderCustomDefaultControls(pcfControls);
+			//RenderPieChart(pcfControls);
+			//RenderCustomDefaultControls(pcfControls);
 
-			comboBoxcustom.Tag = pcfControls;
+			//comboBoxcustom.Tag = pcfControls;
 			comboBoxtotal.Tag = pcfControls;
 			comboBoxtotal.SelectedIndex = 0;
-			comboBoxcustom.SelectedIndex = 0;
+			//comboBoxcustom.SelectedIndex = 0;
 
 		}
 		Image LoadImage(string url)
@@ -266,79 +295,79 @@ namespace PCf_Explorer_Sol
 			return bmp;
 		}
 
-		void RenderPieChart(List<PCFModel> pcfControls)
-		{
+		//void RenderPieChart(List<PCFModel> pcfControls)
+		//{
 
-			var fDatasetCount = pcfControls.Count(p => p.IsFieldtype.Equals(false));
-			var filedsCount = pcfControls.Count(p => p.IsFieldtype.Equals(true));
+		//	var fDatasetCount = pcfControls.Count(p => p.IsFieldtype.Equals(false));
+		//	var filedsCount = pcfControls.Count(p => p.IsFieldtype.Equals(true));
 
-			DataTable dt = new DataTable("PCFControls");
-			//dt.Clear();
-			dt.Columns.Add("Type");
-			dt.Columns.Add("Count");
-			DataRow _newRow = dt.NewRow();
-			_newRow["Type"] = "Field";
-			_newRow["Count"] = filedsCount;
-			dt.Rows.Add(_newRow);
-			_newRow = dt.NewRow();
-			_newRow["Type"] = "Dataset";
-			_newRow["Count"] = fDatasetCount;
-			dt.Rows.Add(_newRow);
+		//	DataTable dt = new DataTable("PCFControls");
+		//	//dt.Clear();
+		//	dt.Columns.Add("Type");
+		//	dt.Columns.Add("Count");
+		//	DataRow _newRow = dt.NewRow();
+		//	_newRow["Type"] = "Field";
+		//	_newRow["Count"] = filedsCount;
+		//	dt.Rows.Add(_newRow);
+		//	_newRow = dt.NewRow();
+		//	_newRow["Type"] = "Dataset";
+		//	_newRow["Count"] = fDatasetCount;
+		//	dt.Rows.Add(_newRow);
 
 
-			chartpie.Series[0].ChartType = SeriesChartType.Pie;
-			chartpie.DataSource = dt;
-			chartpie.Series[0].XValueMember = "Type";
-			chartpie.Series[0].YValueMembers = "Count";
-			chartpie.Titles.Add($"Total PCF Controls: {pcfControls.Count}");
+		//	chartpie.Series[0].ChartType = SeriesChartType.Pie;
+		//	chartpie.DataSource = dt;
+		//	chartpie.Series[0].XValueMember = "Type";
+		//	chartpie.Series[0].YValueMembers = "Count";
+		//	chartpie.Titles.Add($"Total PCF Controls: {pcfControls.Count}");
 
-			chartpie.Series[0].IsValueShownAsLabel = true;
-			chartpie.ChartAreas[0].Area3DStyle.Enable3D = true;
-			chartpie.BackColor = Color.Transparent;
-			chartpie.ChartAreas[0].BackColor = Color.Transparent;
-			chartpie.Legends[0].BackColor = Color.Transparent;
+		//	chartpie.Series[0].IsValueShownAsLabel = true;
+		//	chartpie.ChartAreas[0].Area3DStyle.Enable3D = true;
+		//	chartpie.BackColor = Color.Transparent;
+		//	chartpie.ChartAreas[0].BackColor = Color.Transparent;
+		//	chartpie.Legends[0].BackColor = Color.Transparent;
 
-		}
+		//}
 
-		void RenderCustomDefaultControls(List<PCFModel> pcfControls)
-		{
-			var mscontrol = pcfControls.Count(p => p.DefaultMSControl.Equals(true));
-			var customcontrol = pcfControls.Count(p => p.DefaultMSControl.Equals(false));
+		//void RenderCustomDefaultControls(List<PCFModel> pcfControls)
+		//{
+		//	var mscontrol = pcfControls.Count(p => p.DefaultMSControl.Equals(true));
+		//	var customcontrol = pcfControls.Count(p => p.DefaultMSControl.Equals(false));
 
-			DataTable dt = new DataTable("PCFControls");
-			//dt.Clear();
-			dt.Columns.Add("Type");
-			dt.Columns.Add("Count");
-			DataRow _newRow = dt.NewRow();
-			_newRow["Type"] = "Microsoft";
-			_newRow["Count"] = mscontrol;
-			dt.Rows.Add(_newRow);
-			_newRow = dt.NewRow();
-			_newRow["Type"] = "Custom";
-			_newRow["Count"] = customcontrol;
-			dt.Rows.Add(_newRow);
+		//	DataTable dt = new DataTable("PCFControls");
+		//	//dt.Clear();
+		//	dt.Columns.Add("Type");
+		//	dt.Columns.Add("Count");
+		//	DataRow _newRow = dt.NewRow();
+		//	_newRow["Type"] = "Microsoft";
+		//	_newRow["Count"] = mscontrol;
+		//	dt.Rows.Add(_newRow);
+		//	_newRow = dt.NewRow();
+		//	_newRow["Type"] = "Custom";
+		//	_newRow["Count"] = customcontrol;
+		//	dt.Rows.Add(_newRow);
 
-			chart1.Series[0].ChartType = SeriesChartType.Pie;
-			chart1.DataSource = dt;
-			chart1.Series[0].XValueMember = "Type";
-			chart1.Series[0].YValueMembers = "Count";
-			chart1.Titles.Add($"Microsoft vs Custom Controls: {pcfControls.Count}");
+		//	chart1.Series[0].ChartType = SeriesChartType.Pie;
+		//	chart1.DataSource = dt;
+		//	chart1.Series[0].XValueMember = "Type";
+		//	chart1.Series[0].YValueMembers = "Count";
+		//	chart1.Titles.Add($"Microsoft vs Custom Controls: {pcfControls.Count}");
 
-			chart1.Series[0].IsValueShownAsLabel = true;
-			chart1.ChartAreas[0].Area3DStyle.Enable3D = true;
-			chart1.BackColor = Color.Transparent;
-			chart1.ChartAreas[0].BackColor = Color.Transparent;
-			chart1.Legends[0].BackColor = Color.Transparent;
+		//	chart1.Series[0].IsValueShownAsLabel = true;
+		//	chart1.ChartAreas[0].Area3DStyle.Enable3D = true;
+		//	chart1.BackColor = Color.Transparent;
+		//	chart1.ChartAreas[0].BackColor = Color.Transparent;
+		//	chart1.Legends[0].BackColor = Color.Transparent;
 
-			Series S = chart1.Series[0];
-			for (int idx = 0; idx < dt.Columns.Count; idx++)
-			{
-				DataPoint dp = new DataPoint();
-				dp.ToolTip = "adnan" + idx;
-				chart1.Series[0].Points.Add(dp);
-			}
+		//	Series S = chart1.Series[0];
+		//	for (int idx = 0; idx < dt.Columns.Count; idx++)
+		//	{
+		//		DataPoint dp = new DataPoint();
+		//		dp.ToolTip = "adnan" + idx;
+		//		chart1.Series[0].Points.Add(dp);
+		//	}
 
-		}
+		//}
 		#endregion
 
 		private void btnsearch_Click(object sender, EventArgs e)
@@ -351,10 +380,11 @@ namespace PCf_Explorer_Sol
 			if (e.KeyCode == Keys.Enter)
 			{
 				ListViewItem foundItem =
-	   listViewPCF.FindItemWithText(txtsearch.Text, false, 0, true);
+	   listViewPCF.FindItemWithText(txtsearch.Text, true, 0, true);
 				if (foundItem != null)
 				{
 					listViewPCF.Items[foundItem.Index].Selected = true;
+					listViewPCF.Select();
 					foundItem.EnsureVisible();
 
 				}
@@ -374,56 +404,73 @@ namespace PCf_Explorer_Sol
 				if (selection == "Field")
 				{
 					items = lst.Where(p => p.compatibledatatypes != "Grid");
+					if (items.Any())
+						lbltotal.Text = $"Total Field controls: {items.ToList().Count}";
 				}
-				else
+				else if (selection == "Dataset")
 				{
 					items = lst.Where(p => p.compatibledatatypes.Equals("Grid"));
+					if (items.Any())
+						lbltotal.Text = $"Total Dataset controls: {items.ToList().Count}";
 				}
-
-				if (items.Any())
-				{
-					foreach (var item in items)
-					{
-						listBox1.Items.Add(item.name);
-					}
-				}
-
-			}
-		}
-
-		private void comboBoxcustom_SelectedIndexChanged(object sender, EventArgs e)
-		{
-
-			IEnumerable<PCFModel> items = null;
-			if (comboBoxcustom.SelectedItem == null) return;
-			var lst = comboBoxcustom.Tag as List<PCFModel>;
-			if (lst != null && lst.Count > 0)
-			{
-				listBox2.Items.Clear();
-				var selection = Convert.ToString(comboBoxcustom.SelectedItem);
-				if (selection == "Custom")
+				else if (selection == "Custom controls")
 				{
 					items = lst.Where(p => p.DefaultMSControl.Equals(false));
+					if (items.Any())
+						lbltotal.Text = $"Total Custom controls: {items.ToList().Count}";
 				}
-				else
+				else if (selection == "Default controls")
 				{
 					items = lst.Where(p => p.DefaultMSControl.Equals(true));
+					if (items.Any())
+						lbltotal.Text = $"Total Default(microsoft) controls: {items.ToList().Count}";
 				}
 				if (items.Any())
 				{
 					foreach (var item in items)
 					{
-						listBox2.Items.Add(item.name);
+						listBox1.Items.Add(item.ClientJson.DisplayName);
 					}
 				}
+
 			}
 		}
+
+		//private void comboBoxcustom_SelectedIndexChanged(object sender, EventArgs e)
+		//{
+
+		//	IEnumerable<PCFModel> items = null;
+		//	if (comboBoxcustom.SelectedItem == null) return;
+		//	var lst = comboBoxcustom.Tag as List<PCFModel>;
+		//	if (lst != null && lst.Count > 0)
+		//	{
+		//		listBox2.Items.Clear();
+		//		var selection = Convert.ToString(comboBoxcustom.SelectedItem);
+		//		if (selection == "Custom")
+		//		{
+		//			items = lst.Where(p => p.DefaultMSControl.Equals(false));
+		//		}
+		//		else
+		//		{
+		//			items = lst.Where(p => p.DefaultMSControl.Equals(true));
+		//		}
+		//		if (items.Any())
+		//		{
+		//			foreach (var item in items)
+		//			{
+		//				listBox2.Items.Add(item.ClientJson.DisplayName);
+		//			}
+		//		}
+		//	}
+		//}
 
 		private void listViewPCF_SelectedIndexChanged(object sender, EventArgs e)
 		{
 			ListView.SelectedListViewItemCollection items = this.listViewPCF.SelectedItems;
 			if (items.Count <= 0) return;
 			LoadDependentPCFControl(items);
+
+
 		}
 
 
@@ -431,35 +478,48 @@ namespace PCf_Explorer_Sol
 		{
 			ListGroupDisplyModel lstGroupForms = null;//mkae PCF hosted forms/Dashboard group
 			ListViewItem itemNew = null;
+
+
 			listViewDetails.Clear();
 			PCFClientJsonModel client = null;
 			RetrieveDependentComponentsRequest request = null;
-			//https://github.com/yesadahmed/PCF-Explorer/blob/main/PCf_transparent.png?raw=true
+			//https://github.com/yesadahmed/PCF-Explorer/blob/main/orginal.png?raw=true
 			ImageList myImageList = new ImageList();
 			myImageList.ColorDepth = ColorDepth.Depth32Bit;
 			myImageList.Images.Add(
-			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/form_transparent.png"));//0
+			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/form_transparent.png"));//0 Form
 
 			myImageList.Images.Add(
-			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/gear-64.png"));//1
+			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/gear-64.png"));//1 solution
 
 
 			myImageList.Images.Add(
-			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/Hand-80.png"));//2
+			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/Hand-80.png"));//2 properties
 			myImageList.ImageSize = new Size(47, 47);
+
+			myImageList.Images.Add(
+			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/dataset.png"));//3 dataset
+			myImageList.ImageSize = new Size(47, 47);
+
+			myImageList.Images.Add(
+			  LoadImage("https://raw.githubusercontent.com/yesadahmed/PCF-Explorer/main/file.png"));//4 resources
+			myImageList.ImageSize = new Size(47, 47);
+
+
 
 
 			listViewDetails.LargeImageList = myImageList;
 			listViewDetails.View = View.Tile;
 
-			listViewDetails.TileSize = new Size(560, 43);
+			listViewDetails.TileSize = new Size(560, 54);
 			listViewDetails.Columns.AddRange(new ColumnHeader[]
 		  {new ColumnHeader(), new ColumnHeader(), new ColumnHeader()});
 
-
+			string pcfjson = string.Empty;
 			foreach (ListViewItem item in items)
 			{
 				client = item.Tag as PCFClientJsonModel;
+				pcfjson = item.Name;
 				request =
 				  new RetrieveDependentComponentsRequest
 				  {
@@ -553,7 +613,7 @@ namespace PCf_Explorer_Sol
 
 								}
 
-								listViewDetails.Items.Add(new ListViewItem(new string[] { prop.Name, _type, "Columns: " + columns }, 2, grpdataset));
+								listViewDetails.Items.Add(new ListViewItem(new string[] { prop.Name, _type, "Columns: " + columns }, 3, grpdataset));
 
 							}
 						}
@@ -566,14 +626,34 @@ namespace PCf_Explorer_Sol
 							foreach (var prop in client.Properties.Resources)
 							{
 								var _type = prop.TypeGroup != null ? prop.TypeGroup : prop.Type;
-								
-								listViewDetails.Items.Add(new ListViewItem(new string[] { prop.Name, "Type: " +_type, "Loadorder: " + prop.LoadOrder }, 2, grpdataset));
+
+								listViewDetails.Items.Add(new ListViewItem(new string[] { prop.Name, "Type: " + _type, "Loadorder: " + prop.LoadOrder }, 4, grpdataset));
 
 							}
 						}
 
 					}
 				}
+
+				if (dicControls.ContainsKey(client.CustomControlId))
+				{
+					string jsonFormatted = JValue.Parse(dicControls[client.CustomControlId]).ToString(Formatting.Indented);
+
+					string pattern = @"(?<=\"")(.*?)(?=\"":)";//json property identifier
+															  // Create a Regex  
+					Regex rg = new Regex(pattern);
+
+
+					txtpcfjson.Text = jsonFormatted;
+
+					foreach (Match match in rg.Matches(txtpcfjson.Text))
+					{
+						txtpcfjson.Select(match.Index, match.Length);
+						txtpcfjson.SelectionColor = Color.Blue;
+					}
+				}
+				//string jsonFormatted = JValue.Parse(pcfjson).ToString(Formatting.Indented);
+				//txtpcfjson.Text = jsonFormatted;
 			}
 			catch (Exception ex)
 			{
@@ -595,7 +675,7 @@ namespace PCf_Explorer_Sol
 				cRMFormModel.FormId = FormId;
 				cRMFormModel.entity = "Entity: " + form.GetAttributeValue<string>("objecttypecode");
 				cRMFormModel.Name = "FormName: " + form.GetAttributeValue<string>("name");
-				var _formType =  form.GetAttributeValue<OptionSetValue>("type");
+				var _formType = form.GetAttributeValue<OptionSetValue>("type");
 				if (_formType != null)
 					cRMFormModel.FormType = "Type: " + GetCRMFormType(_formType.Value);
 			}
@@ -673,6 +753,36 @@ namespace PCf_Explorer_Sol
 			}
 
 			return type;
+		}
+
+		private void txtsearch_TextChanged(object sender, EventArgs e)
+		{
+
+		}
+
+		private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			try
+			{
+				if (listBox1.SelectedItem != null)
+				{
+					string curItem = listBox1.SelectedItem.ToString();
+					ListViewItem foundItem = listViewPCF.FindItemWithText(curItem, true, 0, true);
+					if (foundItem != null)
+					{
+						listViewPCF.Items[foundItem.Index].Selected = true;
+						listViewPCF.Select();
+						foundItem.EnsureVisible();
+
+					}
+				}
+
+			}
+			catch (Exception)
+			{
+
+
+			}
 		}
 	}
 }

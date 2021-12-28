@@ -1,1 +1,24 @@
 https://docs.microsoft.com/en-us/nuget/quickstart/create-and-publish-a-package-using-visual-studio-net-framework
+
+https://docs.microsoft.com/en-us/nuget/quickstart/create-and-publish-a-package-using-visual-studio-net-framework
+
+
+https://nuget-tutorial.net/en/tutorial/100001/create-nuget-package
+
+steps
+
+nuget spec SuperLogger.csproj
+
+
+nuget pack
+
+Publish through 
+
+
+Adnan: Nuget PAT key
+oy2fypqdbyghh2pig5yaapnkh7sc5lyu3p7n2xgvzp3ssa
+
+August 10, 2021
+
+________
+https://www.nuget.org/account/apikeys

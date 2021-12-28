@@ -2,6 +2,6 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <StartAction>Program</StartAction>
-    <StartProgram>C:\Users\adsa\source\repos\Git\PCF-Explorer\PCf-Explorer-Sol\PCf-Explorer-Sol\bin\Debug\XrmToolBox.exe</StartProgram>
+    <StartProgram>C:\Users\adsa\source\repos\Git\PCF-Explorer-Code\PCf-Explorer-Sol\PCf-Explorer-Sol\bin\Debug\XrmToolBox.exe</StartProgram>
   </PropertyGroup>
 </Project>
